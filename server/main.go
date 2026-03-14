@@ -7,10 +7,15 @@ import (
 	"sync"
 )
 
+type Message struct {
+    sender net.Conn
+    content string
+}
+
 type Server struct {
 	clients map[net.Conn]string
-	broadcast chan string
-	mut sync.Mutex
+	broadcast chan Message
+	mut sync.RWMutex
 }
 
 func main() {
@@ -24,9 +29,12 @@ func main() {
 	defer listener.Close()
 	fmt.Println("Server started on :8080")
 
-	server := &Server{
+	server := &Server {
 		clients: make(map[net.Conn]string),
+		broadcast: make(chan Message),
 	}
+
+	go server.handleBroadcast()
 
 	for {
 		conn, err := listener.Accept()
@@ -35,9 +43,21 @@ func main() {
 			return
 		}
 
-		// fmt.Println("New connection:", conn)
+		fmt.Println("New connection:", conn)
 		go server.handleClient(conn)
 	}
+}
+
+func (s *Server) handleBroadcast() {
+	for message := range s.broadcast {
+        s.mut.RLock()
+        for conn := range s.clients {
+        	if conn != message.sender {
+            	fmt.Fprintln(conn, message.content)
+         	}
+        }
+        s.mut.RUnlock()
+    }
 }
 
 func (s *Server) handleClient(conn net.Conn) {
@@ -47,22 +67,32 @@ func (s *Server) handleClient(conn net.Conn) {
 	scanner.Scan()
 	username := scanner.Text()
 
+	s.broadcast <- Message {
+		sender: conn,
+		content: fmt.Sprintf("%s joined!", username),
+	}
+
 	s.mut.Lock()
 	s.clients[conn] = username
 	s.mut.Unlock()
 
-	fmt.Printf("%s joined the chat!\n", username)
+	fmt.Fprintln(conn, fmt.Sprintf("Connected as %s!", username))
 
 	for scanner.Scan() {
 		message := scanner.Text()
-		fmt.Printf("%s: %s\n", username, message)
+		s.broadcast <- Message {
+			sender: nil,
+			content: fmt.Sprintf("%s: %s", username, message),
+		}
 	}
 
 	s.mut.Lock()
 	delete(s.clients, conn)
 	s.mut.Unlock()
 
-	fmt.Printf("%s left the chat!\n", username)
-
-	// fmt.Println("Client disconnected:", conn.RemoteAddr())
+	s.broadcast <- Message {
+		sender: conn,
+		content: fmt.Sprintf("%s left", username),
+	}
+	fmt.Println("Client disconnected:", conn.RemoteAddr())
 }

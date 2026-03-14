@@ -24,13 +24,18 @@ func main() {
 	scanner.Scan()
 
 	username := scanner.Text()
-
 	fmt.Fprintln(conn, username)
-	fmt.Printf("Connected as %s!\n", username)
+
+	go func() {
+		serverScanner := bufio.NewScanner(conn)
+		for serverScanner.Scan() {
+			fmt.Println(serverScanner.Text())
+		}
+	}()
 
 	// -- message loop
+	// TODO: fix message staying after send
  	for {
-        fmt.Print("> ")
         scanner.Scan()
         message := scanner.Text()
         fmt.Fprintln(conn, message)
