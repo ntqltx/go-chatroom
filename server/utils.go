@@ -1,21 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"net"
-	"sync"
+	"time"
+
 	"github.com/fatih/color"
 )
-
-type Message struct {
-	sender net.Conn
-	content string
-}
-
-type Server struct {
-	clients map[net.Conn]string
-	broadcast chan Message
-	mut sync.RWMutex
-}
 
 // -- slice with all possible username colors
 var colorList = []*color.Color{
@@ -27,14 +18,23 @@ var colorList = []*color.Color{
 	color.New(color.FgCyan),
 }
 
-// -- timestamp coloring
+// -- custom coloring
+var systemStyle = color.New(color.FgHiWhite, color.Bold)
 var timestampStyle = color.New(color.FgWhite, color.Faint, color.Bold)
 
-// -- function to get random username color
 func getUserColor(username string) *color.Color {
 	total := 0
 	for _, c := range username {
 		total += int(c)
 	}
 	return colorList[total % len(colorList)]
+}
+
+func (s *Server) formatMessage(colorUsername, message string) string {
+	timestamp := timestampStyle.Sprintf("[%s]", time.Now().Format("15:04"))
+	return fmt.Sprintf("%s %s: %s", timestamp, colorUsername, message)
+}
+
+func (s *Server) systemBroadcast(content string, target net.Conn) {
+    s.broadcast <- Message{sender: nil, target: target, content: content}
 }

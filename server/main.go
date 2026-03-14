@@ -4,8 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"time"
+	"sync"
 )
+
+type Message struct {
+	sender net.Conn
+	target net.Conn
+	content string
+}
+
+type Server struct {
+	clients map[net.Conn]string
+	broadcast chan Message
+	mut sync.RWMutex
+}
 
 func main() {
 	listener, err := net.Listen("tcp", ":8080")
@@ -22,8 +34,12 @@ func main() {
 		clients: make(map[net.Conn]string),
 		broadcast: make(chan Message),
 	}
-	go server.handleBroadcast()
 
+	go server.handleBroadcast()
+	server.handleConnections(listener)
+}
+
+func (s *Server) handleConnections(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -31,66 +47,50 @@ func main() {
 			return
 		}
 
-		fmt.Println("New connection:", conn)
-		go server.handleClient(conn)
+		fmt.Println("New connection:", conn.RemoteAddr())
+		go s.handleClient(conn)
 	}
 }
 
 func (s *Server) handleBroadcast() {
 	for message := range s.broadcast {
-        s.mut.RLock()
-        for conn := range s.clients {
-        	if conn != message.sender {
-            	fmt.Fprintln(conn, message.content)
-         	}
-        }
-        s.mut.RUnlock()
-    }
+		s.mut.RLock()
+
+		for conn := range s.clients {
+			if conn == message.sender || conn == message.target {
+                continue
+            }
+
+			switch message.sender {
+				case nil: fmt.Fprintln(conn, systemStyle.Sprintf("[System]: ") + message.content)
+				default: fmt.Fprintln(conn, message.content)
+			}
+		}
+
+		s.mut.RUnlock()
+	}
 }
 
 func (s *Server) handleClient(conn net.Conn) {
 	defer conn.Close()
-	scanner := bufio.NewScanner(conn)
 
-	scanner.Scan()
-	username := scanner.Text()
-
-	s.mut.Lock()
-	s.clients[conn] = username
-	s.mut.Unlock()
-
-	var nameColor = getUserColor(username)
-	colorUsername := nameColor.Sprint(username)
-	fmt.Fprintf(conn, "Connected as %s!\n", colorUsername)
-
-	s.broadcast <- Message {
-		sender: conn,
-		content: fmt.Sprintf("%s joined!", colorUsername),
+	username, colorUsername := s.registerClient(conn)
+	if username == "" {
+		return
 	}
+
+	defer s.unregisterClient(conn, username, colorUsername)
+	s.receiveMessages(conn, colorUsername)
+}
+
+func (s *Server) receiveMessages(conn net.Conn, colorUsername string) {
+	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
 		message := scanner.Text()
-		timestamp := timestampStyle.Sprintf("[%s]:", time.Now().Format("15:04"))
+		formatted := s.formatMessage(colorUsername, message)
 
-		var formatted = fmt.Sprintf(
-			"%s %s: %s", timestamp,
-			colorUsername, message,
-		)
 		fmt.Fprintln(conn, formatted)
-
-		s.broadcast <- Message {
-			sender: conn,
-			content: formatted,
-		}
+		s.broadcast <- Message{sender: conn, content: formatted}
 	}
-
-	s.mut.Lock()
-	delete(s.clients, conn)
-	s.mut.Unlock()
-
-	s.broadcast <- Message {
-		sender: conn,
-		content: fmt.Sprintf("%s left", colorUsername),
-	}
-	fmt.Println("Client disconnected:", conn.RemoteAddr())
 }
