@@ -4,20 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"sync"
 	"time"
 )
-
-type Message struct {
-    sender net.Conn
-    content string
-}
-
-type Server struct {
-	clients map[net.Conn]string
-	broadcast chan Message
-	mut sync.RWMutex
-}
 
 func main() {
 	listener, err := net.Listen("tcp", ":8080")
@@ -34,7 +22,6 @@ func main() {
 		clients: make(map[net.Conn]string),
 		broadcast: make(chan Message),
 	}
-
 	go server.handleBroadcast()
 
 	for {
@@ -68,24 +55,32 @@ func (s *Server) handleClient(conn net.Conn) {
 	scanner.Scan()
 	username := scanner.Text()
 
-	s.broadcast <- Message {
-		sender: conn,
-		content: fmt.Sprintf("%s joined!", username),
-	}
-
 	s.mut.Lock()
 	s.clients[conn] = username
 	s.mut.Unlock()
 
-	fmt.Fprintln(conn, fmt.Sprintf("Connected as %s!", username))
+	var nameColor = getUserColor(username)
+	colorUsername := nameColor.Sprint(username)
+	fmt.Fprintf(conn, "Connected as %s!\n", colorUsername)
+
+	s.broadcast <- Message {
+		sender: conn,
+		content: fmt.Sprintf("%s joined!", colorUsername),
+	}
 
 	for scanner.Scan() {
 		message := scanner.Text()
-		timestamp := time.Now().Format("15:04")
+		timestamp := timestampStyle.Sprintf("[%s]:", time.Now().Format("15:04"))
+
+		var formatted = fmt.Sprintf(
+			"%s %s: %s", timestamp,
+			colorUsername, message,
+		)
+		fmt.Fprintln(conn, formatted)
 
 		s.broadcast <- Message {
-			sender: nil,
-			content: fmt.Sprintf("[%s]: %s: %s", timestamp, username, message),
+			sender: conn,
+			content: formatted,
 		}
 	}
 
@@ -95,7 +90,7 @@ func (s *Server) handleClient(conn net.Conn) {
 
 	s.broadcast <- Message {
 		sender: conn,
-		content: fmt.Sprintf("%s left", username),
+		content: fmt.Sprintf("%s left", colorUsername),
 	}
 	fmt.Println("Client disconnected:", conn.RemoteAddr())
 }
