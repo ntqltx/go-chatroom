@@ -24,6 +24,10 @@ func main() {
 	defer listener.Close()
 	fmt.Println("Server started on :8080")
 
+	server := &Server{
+		clients: make(map[net.Conn]string),
+	}
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -31,20 +35,34 @@ func main() {
 			return
 		}
 
-		fmt.Println("New connection:", conn)
-		go handleClient(conn)
+		// fmt.Println("New connection:", conn)
+		go server.handleClient(conn)
 	}
 }
 
-func handleClient(conn net.Conn) {
+func (s *Server) handleClient(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 
-	// TODO: stop treating 'username' as message
+	scanner.Scan()
+	username := scanner.Text()
+
+	s.mut.Lock()
+	s.clients[conn] = username
+	s.mut.Unlock()
+
+	fmt.Printf("%s joined the chat!\n", username)
+
 	for scanner.Scan() {
 		message := scanner.Text()
-		fmt.Println("Received:", message)
+		fmt.Printf("%s: %s\n", username, message)
 	}
 
-	fmt.Println("Client disconnected:", conn.RemoteAddr())
+	s.mut.Lock()
+	delete(s.clients, conn)
+	s.mut.Unlock()
+
+	fmt.Printf("%s left the chat!\n", username)
+
+	// fmt.Println("Client disconnected:", conn.RemoteAddr())
 }
