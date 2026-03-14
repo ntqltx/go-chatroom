@@ -31,6 +31,7 @@ func main() {
 			fmt.Printf("\r\033[K%s\n> ", serverScanner.Text())
 		}
 
+		fmt.Print("\n\033[A\033[K")
 		fmt.Println("Server disconnected!")
 		os.Exit(0)
 	}()
@@ -41,7 +42,6 @@ func main() {
         message := scanner.Text()
 
         if message == "" {
-        	fmt.Print("> ")
         	continue
         }
 

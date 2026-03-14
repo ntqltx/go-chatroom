@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 type Message struct {
@@ -80,9 +81,11 @@ func (s *Server) handleClient(conn net.Conn) {
 
 	for scanner.Scan() {
 		message := scanner.Text()
+		timestamp := time.Now().Format("15:04")
+
 		s.broadcast <- Message {
 			sender: nil,
-			content: fmt.Sprintf("%s: %s", username, message),
+			content: fmt.Sprintf("[%s]: %s: %s", timestamp, username, message),
 		}
 	}
 
