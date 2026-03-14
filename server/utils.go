@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/fatih/color"
 )
+
+const CLEAN_LINE = "\033[A\033[K"
+var errorStyle = color.New(color.FgRed, color.Bold)
 
 // -- slice with all possible username color tags
 var colorList = []string{
@@ -35,4 +40,9 @@ func (s *Server) formatMessage(username, message string) string {
 
 func (s *Server) systemBroadcast(content string, target net.Conn) {
 	s.broadcast <- Message{sender: nil, target: target, content: content}
+}
+
+func errorMessage(content string) {
+	fmt.Print(CLEAN_LINE)
+	fmt.Println(errorStyle.Sprint("[Error] ") + content)
 }

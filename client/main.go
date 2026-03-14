@@ -9,15 +9,29 @@ import (
 )
 
 func main() {
-	// TODO: add address input
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
-		fmt.Println("Error connecting:", err)
-		return
+	scanner := bufio.NewScanner(os.Stdin)
+	var conn net.Conn
+
+	for {
+		fmt.Print("Port (default 8080): ")
+		scanner.Scan()
+
+		port := strings.TrimSpace(scanner.Text())
+		if port == "" { port = "8080" }
+
+		var err error
+		address := fmt.Sprintf("localhost:%s", port)
+		conn, err = net.Dial("tcp", address)
+
+		if err != nil {
+			errorMessage(fmt.Sprintf("Could not connect to %s, try again!", address))
+			continue
+		}
+		break
 	}
 	defer conn.Close()
 
-	serverScanner, message, err := login(conn)
+	serverScanner, message, err := login(conn, scanner)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -25,8 +39,8 @@ func main() {
 	startUI(conn, serverScanner, message)
 }
 
-func login(conn net.Conn) (*bufio.Scanner, string, error) {
-	scanner := bufio.NewScanner(os.Stdin)
+func login(conn net.Conn, scanner *bufio.Scanner) (*bufio.Scanner, string, error) {
+	serverScanner := bufio.NewScanner(conn)
 
 	for {
 		fmt.Print("Enter username: ")
@@ -39,9 +53,8 @@ func login(conn net.Conn) (*bufio.Scanner, string, error) {
 			errorMessage(errMsg)
 			continue
 		}
-		fmt.Fprintln(conn, username)
 
-		serverScanner := bufio.NewScanner(conn)
+		fmt.Fprintln(conn, username)
 		serverScanner.Scan()
 		response := serverScanner.Text()
 
@@ -50,7 +63,7 @@ func login(conn net.Conn) (*bufio.Scanner, string, error) {
 			continue
 		}
 
-		fmt.Printf("\033[2J\033[H")
+		// fmt.Printf("\033[2J\033[H")
 		return serverScanner, response, nil
 	}
 }

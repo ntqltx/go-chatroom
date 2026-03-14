@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -24,18 +25,31 @@ type Server struct {
 }
 
 func main() {
-	// TODO: add address input
-	// ALSO ADD ENCRYPTION
+	// TODO: add message encryption
 	//
-	listener, err := net.Listen("tcp", ":8080")
+	scanner := bufio.NewScanner(os.Stdin)
+	var listener net.Listener
+	var port string
 
-	if err != nil {
-		fmt.Println("Error starting server:", err)
-		return
+	for {
+		fmt.Print("Port (default 8080): ")
+		scanner.Scan()
+
+		port = strings.TrimSpace(scanner.Text())
+		if port == "" {	port = "8080" }
+
+		var err error
+		listener, err = net.Listen("tcp", ":" + port)
+
+		if err != nil {
+			errorMessage(fmt.Sprintf("Port %s is already in use, try another!", port))
+			continue
+		}
+		break
 	}
 
 	defer listener.Close()
-	fmt.Println("Server started on localhost:8080")
+	fmt.Printf("Server started on localhost:%s\n", port)
 
 	server := &Server {
 		clients: make(map[net.Conn]string),

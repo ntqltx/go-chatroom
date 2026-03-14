@@ -57,6 +57,7 @@ func startUI(conn net.Conn, serverScanner *bufio.Scanner, message string) {
 				app.Stop()
 				return
 			}
+
 			update(app, messages, message)
 		}
 

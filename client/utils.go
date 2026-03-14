@@ -19,5 +19,6 @@ func validateUsername(username string) string {
 }
 
 func errorMessage(content string) {
+	fmt.Print(CLEAN_LINE)
 	fmt.Println(errorStyle.Sprint("[Error] ") + content)
 }
