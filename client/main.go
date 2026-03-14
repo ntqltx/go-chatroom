@@ -25,20 +25,15 @@ func main() {
 
 	var username string
 	for {
-		fmt.Print("Username: ")
+		fmt.Print("Enter Username: ")
 		scanner.Scan()
 
 		username = strings.TrimSpace(scanner.Text())
-		l := len(username)
 		fmt.Print(CLEAN_LINE)
 
-		if l == 0 {
-		    errorMessage("Username cannot be empty")
-		    continue
-		}
-		if l > 20 {
-		    errorMessage("Username cannot be more than 20 characters")
-		    continue
+		if err := validateUsername(username); err != "" {
+			errorMessage(err)
+			continue
 		}
 
 		fmt.Fprintln(conn, username)
@@ -52,6 +47,8 @@ func main() {
 			continue
 		}
 
+		// temp
+		fmt.Printf("\033[2J\033[H")
 		fmt.Printf("\r\033[K%s\n> ", response)
 
 		go func() {
@@ -81,6 +78,15 @@ func main() {
         fmt.Print(CLEAN_LINE)
         fmt.Fprintln(conn, message)
     }
+}
+
+func validateUsername(username string) string {
+	l := len(username)
+	switch {
+		case l == 0: return "Username cannot be empty"
+		case l > 20: return "Username cannot be more than 20 characters"
+	}
+	return ""
 }
 
 func errorMessage(content string) {

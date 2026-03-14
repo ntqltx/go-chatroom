@@ -39,7 +39,7 @@ func (s *Server) registerClient(conn net.Conn) (string, string) {
 		s.clients[conn] = username
 		s.mut.Unlock()
 
-		fmt.Fprintf(conn, "\nConnected as %s\n", colorUsername)
+		fmt.Fprintf(conn, "Connected as %s\n", colorUsername)
 		fmt.Printf("%s connected\n", username)
 
 		return username, colorUsername
