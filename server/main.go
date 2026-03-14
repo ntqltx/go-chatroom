@@ -62,7 +62,7 @@ func (s *Server) handleBroadcast() {
             }
 
 			switch message.sender {
-				case nil: fmt.Fprintln(conn, systemStyle.Sprintf("[System]: ") + message.content)
+				case nil: fmt.Fprintln(conn, systemStyle.Sprintf("[Server] ") + message.content)
 				default: fmt.Fprintln(conn, message.content)
 			}
 		}

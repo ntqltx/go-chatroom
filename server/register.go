@@ -1,30 +1,49 @@
 package main
 
 import (
-	"net"
-	"fmt"
 	"bufio"
+	"fmt"
+	"net"
+	"strings"
 )
 
 func (s *Server) registerClient(conn net.Conn) (string, string) {
 	scanner := bufio.NewScanner(conn)
-	if !scanner.Scan() {
-		return "", ""
+	for {
+		if !scanner.Scan() {
+			return "", ""
+		}
+		username := strings.TrimSpace(scanner.Text())
+
+		s.mut.RLock()
+		taken := false
+
+		for _, name := range s.clients {
+			if name == username {
+				taken = true
+				break
+			}
+		}
+
+		s.mut.RUnlock()
+
+		if taken {
+			fmt.Fprintln(conn, "USERNAME_TAKEN")
+			continue
+		}
+
+		colorUsername := getUserColor(username).Sprint(username)
+		s.systemBroadcast(fmt.Sprintf("%s joined!", colorUsername), conn)
+
+		s.mut.Lock()
+		s.clients[conn] = username
+		s.mut.Unlock()
+
+		fmt.Fprintf(conn, "\nConnected as %s\n", colorUsername)
+		fmt.Printf("%s connected\n", username)
+
+		return username, colorUsername
 	}
-
-	username := scanner.Text()
-	colorUsername := getUserColor(username).Sprint(username)
-
-	s.systemBroadcast(fmt.Sprintf("%s joined!", colorUsername), conn)
-
-	s.mut.Lock()
-	s.clients[conn] = username
-	s.mut.Unlock()
-
-	fmt.Fprintf(conn, "Connected as %s\n", colorUsername)
-	fmt.Printf("%s connected\n", username)
-
-	return username, colorUsername
 }
 
 func (s *Server) unregisterClient(conn net.Conn, username, colorUsername string) {
