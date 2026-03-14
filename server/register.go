@@ -9,6 +9,7 @@ import (
 
 func (s *Server) registerClient(conn net.Conn) (string, string) {
 	scanner := bufio.NewScanner(conn)
+
 	for {
 		if !scanner.Scan() {
 			return "", ""
@@ -32,17 +33,17 @@ func (s *Server) registerClient(conn net.Conn) (string, string) {
 			continue
 		}
 
-		colorUsername := getUserColor(username).Sprint(username)
-		s.systemBroadcast(fmt.Sprintf("%s joined!", colorUsername), conn)
+		colored := colorUsername(username)
+		s.systemBroadcast(fmt.Sprintf("%s joined!", colored), conn)
 
 		s.mut.Lock()
 		s.clients[conn] = username
 		s.mut.Unlock()
 
-		fmt.Fprintf(conn, "Connected as %s\n", colorUsername)
+		fmt.Fprintf(conn, "Connected as %s\n", colored)
 		fmt.Printf("%s connected\n", username)
 
-		return username, colorUsername
+		return username, colored
 	}
 }
 

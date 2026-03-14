@@ -20,6 +20,7 @@ type Server struct {
 }
 
 func main() {
+	// TODO: add address input
 	listener, err := net.Listen("tcp", ":8080")
 
 	if err != nil {
@@ -62,7 +63,10 @@ func (s *Server) handleBroadcast() {
             }
 
 			switch message.sender {
-				case nil: fmt.Fprintln(conn, systemStyle.Sprintf("[Server] ") + message.content)
+				case nil:
+					formatted := fmt.Sprintf("[white::b][Server[][-:-:-] %s", message.content)
+					fmt.Fprintln(conn, formatted)
+
 				default: fmt.Fprintln(conn, message.content)
 			}
 		}

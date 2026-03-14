@@ -4,25 +4,19 @@ import (
 	"fmt"
 	"net"
 	"time"
-
-	"github.com/fatih/color"
 )
 
-// -- slice with all possible username colors
-var colorList = []*color.Color{
-	color.New(color.FgRed),
-	color.New(color.FgGreen),
-	color.New(color.FgYellow),
-	color.New(color.FgBlue),
-	color.New(color.FgMagenta),
-	color.New(color.FgCyan),
+// -- slice with all possible username color tags
+var colorList = []string{
+	"[red]",
+	"[green]",
+	"[yellow]",
+	"[blue]",
+	"[purple]",
+	"[cyan]",
 }
 
-// -- custom coloring
-var systemStyle = color.New(color.FgHiWhite, color.Bold)
-var timestampStyle = color.New(color.FgWhite, color.Faint, color.Bold)
-
-func getUserColor(username string) *color.Color {
+func getUserColor(username string) string {
 	total := 0
 	for _, c := range username {
 		total += int(c)
@@ -30,11 +24,15 @@ func getUserColor(username string) *color.Color {
 	return colorList[total % len(colorList)]
 }
 
-func (s *Server) formatMessage(colorUsername, message string) string {
-	timestamp := timestampStyle.Sprintf("[%s]", time.Now().Format("15:04"))
-	return fmt.Sprintf("%s %s: %s", timestamp, colorUsername, message)
+func colorUsername(username string) string {
+	return fmt.Sprintf("%s%s[-]", getUserColor(username), username)
+}
+
+func (s *Server) formatMessage(username, message string) string {
+	timestamp := fmt.Sprintf("[gray]%s[-]", time.Now().Format("[15:04]"))
+	return fmt.Sprintf("%s %s: %s", timestamp, colorUsername(username), message)
 }
 
 func (s *Server) systemBroadcast(content string, target net.Conn) {
-    s.broadcast <- Message{sender: nil, target: target, content: content}
+	s.broadcast <- Message{sender: nil, target: target, content: content}
 }
