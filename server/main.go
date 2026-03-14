@@ -40,6 +40,7 @@ func handleClient(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 
+	// TODO: stop treating 'username' as message
 	for scanner.Scan() {
 		message := scanner.Text()
 		fmt.Println("Received:", message)
