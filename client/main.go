@@ -9,8 +9,6 @@ import (
 
 func main() {
 	// -- connecting to the server
-	// TODO: disconnect user if server closes
-	//
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
 		fmt.Println("Error connecting:", err)
@@ -26,18 +24,28 @@ func main() {
 	username := scanner.Text()
 	fmt.Fprintln(conn, username)
 
+	// -- receive messages
 	go func() {
 		serverScanner := bufio.NewScanner(conn)
 		for serverScanner.Scan() {
-			fmt.Println(serverScanner.Text())
+			fmt.Printf("\r\033[K%s\n> ", serverScanner.Text())
 		}
+
+		fmt.Println("Server disconnected!")
+		os.Exit(0)
 	}()
 
 	// -- message loop
-	// TODO: fix message staying after send
  	for {
         scanner.Scan()
         message := scanner.Text()
+
+        if message == "" {
+        	fmt.Print("> ")
+        	continue
+        }
+
+        fmt.Print("\033[A\033[K")
         fmt.Fprintln(conn, message)
     }
 }
