@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 )
 
 type Message struct {
@@ -17,10 +20,13 @@ type Server struct {
 	clients map[net.Conn]string
 	broadcast chan Message
 	mut sync.RWMutex
+	isShutdown bool
 }
 
 func main() {
 	// TODO: add address input
+	// ALSO ADD ENCRYPTION
+	//
 	listener, err := net.Listen("tcp", ":8080")
 
 	if err != nil {
@@ -29,7 +35,7 @@ func main() {
 	}
 
 	defer listener.Close()
-	fmt.Println("Server started on :8080")
+	fmt.Println("Server started on localhost:8080")
 
 	server := &Server {
 		clients: make(map[net.Conn]string),
@@ -37,14 +43,26 @@ func main() {
 	}
 
 	go server.handleBroadcast()
-	server.handleConnections(listener)
+	go server.handleConnections(listener)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<- quit
+
+	fmt.Print("\r\033[K")
+	server.shutdown()
 }
 
 func (s *Server) handleConnections(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
-		if err != nil {
+
+		if err != nil && !s.isShutdown {
 			fmt.Println("Error connecting to the server:", err)
+			return
+		}
+
+		if conn == nil {
 			return
 		}
 
@@ -97,4 +115,15 @@ func (s *Server) receiveMessages(conn net.Conn, colorUsername string) {
 		fmt.Fprintln(conn, formatted)
 		s.broadcast <- Message{sender: conn, content: formatted}
 	}
+}
+
+func (s *Server) shutdown() {
+	s.isShutdown = true
+
+	for conn := range s.clients {
+		fmt.Fprintln(conn, "SERVER_DISCONNECT")
+		conn.Close()
+	}
+
+	fmt.Println("\nShutting down...")
 }

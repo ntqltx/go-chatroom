@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
 	"strings"
+	"time"
 
-	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 func startUI(conn net.Conn, serverScanner *bufio.Scanner, message string) {
@@ -23,7 +23,7 @@ func startUI(conn net.Conn, serverScanner *bufio.Scanner, message string) {
 	    SetChangedFunc(func() { app.Draw() })
 
 	input := tview.NewInputField().
-	    SetLabel("[white::b]>[-] ")
+	    SetLabel("[white::b]>[-:-:-] ")
 
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -50,16 +50,17 @@ func startUI(conn net.Conn, serverScanner *bufio.Scanner, message string) {
 		for serverScanner.Scan() {
 			message := serverScanner.Text()
 
-			// TODO: fix server disconnect message
-			// ...and somehow try fixing terminal breaking?
-			// (only happens when clients are on server after it disconnected)
 			if message == "SERVER_DISCONNECT" {
-				fmt.Fprintf(messages, "\nServer disconnected!")
-				os.Exit(0)
+				update(app, messages, "[red::b]Server disconnected![-:-:-]")
+				time.Sleep(time.Millisecond*1000)
+
+				app.Stop()
+				return
 			}
 			update(app, messages, message)
 		}
-		os.Exit(0)
+
+		app.Stop()
 	}()
 
 	if err := app.SetRoot(layout, true).Run(); err != nil {
