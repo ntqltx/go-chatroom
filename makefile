@@ -4,8 +4,6 @@ CLIENT_BIN = $(BINARY_DIR)/client
 
 .PHONY: all build server client clean
 
-all: build
-
 build: $(SERVER_BIN) $(CLIENT_BIN)
 	@echo "Binaries built successfully"
 
@@ -18,7 +16,14 @@ $(CLIENT_BIN):
 	@go build -o $@ ./client
 
 server:
-	@-go run ./server; exit 0
+	@if echo "$(ARGS)" | grep -qE "\-\-verbose|\-\-log"; then \
+		stty -echoctl; \
+		go run ./server $(ARGS); \
+		stty echoctl; \
+	else \
+		go run ./server $(ARGS) & \
+		sleep 0.3; \
+	fi; exit 0
 
 client:
 	@-go run ./client; exit 0

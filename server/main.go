@@ -3,10 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 )
@@ -26,34 +26,20 @@ type Server struct {
 	isShutdown bool
 }
 
+// TODO: add message encryption
+
 func main() {
-	// TODO: add message encryption
-	//
-	scanner := bufio.NewScanner(os.Stdin)
-	var listener net.Listener
-	var port string
+	f := parseFlags()
+	setupLogging(f)
 
-	for {
-		fmt.Print("Port (default 8080): ")
-		scanner.Scan()
-
-		port = strings.TrimSpace(scanner.Text())
-		if port == "" {	port = "8080" }
-
-		var err error
-		listener, err = net.Listen("tcp", ":" + port)
-
-		if err != nil {
-			errorMessage(fmt.Sprintf("Port %s is already in use, try another!", port))
-			continue
-		}
-		break
+	listener, err := net.Listen("tcp", ":" + f.port)
+	if err != nil {
+		errorMessage(fmt.Sprintf("Port %s is already in use", f.port))
+		os.Exit(1)
 	}
 
 	defer listener.Close()
-
-	fmt.Printf("\033[2J\033[H")
-	fmt.Printf("Server started on localhost:%s\n", port)
+	log.Printf("Server started on localhost:%s", f.port)
 
 	server := &Server {
 		clients: make(map[net.Conn]string),
@@ -67,8 +53,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<- quit
 
-	fmt.Print("\r\033[K")
-	server.shutdown()
+	if f.verbose {
+  		fmt.Print("\r\033[K")
+	}
+	server.shutdown(f.port)
 }
 
 func (s *Server) handleConnections(listener net.Listener) {
@@ -76,7 +64,7 @@ func (s *Server) handleConnections(listener net.Listener) {
 		conn, err := listener.Accept()
 
 		if err != nil && !s.isShutdown {
-			fmt.Println("Error connecting to the server:", err)
+			log.Printf("Error connecting to the server: %s", err)
 			return
 		}
 
@@ -84,7 +72,7 @@ func (s *Server) handleConnections(listener net.Listener) {
 			return
 		}
 
-		fmt.Println("New connection:", conn.RemoteAddr())
+		log.Printf("New connection: %s", conn.RemoteAddr())
 		go s.handleClient(conn)
 	}
 }
@@ -146,7 +134,7 @@ func (s *Server) receiveMessages(conn net.Conn, colorUsername string) {
 	}
 }
 
-func (s *Server) shutdown() {
+func (s *Server) shutdown(port string) {
 	s.isShutdown = true
 
 	for conn := range s.clients {
@@ -154,5 +142,6 @@ func (s *Server) shutdown() {
 		conn.Close()
 	}
 
-	fmt.Println("\nShutting down...")
+	log.Printf("Shutting down server on localhost:%s", port)
+	os.Exit(0)
 }

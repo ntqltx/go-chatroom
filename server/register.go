@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
@@ -47,7 +48,7 @@ func (s *Server) registerClient(conn net.Conn) (string, string) {
 		s.mut.RUnlock()
 
 		fmt.Fprintf(conn, "Connected as %s\n", colored)
-		fmt.Printf("%s connected\n", username)
+		log.Printf("%s connected", username)
 
 		return username, colored
 	}
@@ -59,5 +60,5 @@ func (s *Server) unregisterClient(conn net.Conn, username, colorUsername string)
 	s.mut.Unlock()
 
 	s.systemBroadcast(fmt.Sprintf("%s left!", colorUsername), conn)
-	fmt.Printf("%s disconnected\n", username)
+	log.Printf("%s disconnected", username)
 }
