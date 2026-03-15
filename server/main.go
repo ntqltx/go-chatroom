@@ -40,13 +40,13 @@ func main() {
 
 	if (!f.verbose || f.logPath != "") && os.Getenv("SERVER_CHILD") != "1" {
 		fmt.Printf("\nServer started on localhost:%s\n–> run `make kill` to stop it\n", f.port)
+		listener.Close()
 
 	    cmd := exec.Command(os.Args[0], os.Args[1:]...)
 	    cmd.Env = append(os.Environ(), "SERVER_CHILD=1")
 
-	    cmd.Stdout = nil
-	    cmd.Stderr = nil
-	    cmd.Stdin = nil
+	    cmd.Stdout, cmd.Stderr, cmd.Stdin = nil, nil, nil
+		cmd.SysProcAttr = &syscall.SysProcAttr{ Setsid: true }
 
 	    if err := cmd.Start(); err != nil {
 			errorMessage(fmt.Sprintf("Unable to start server: %s", err))

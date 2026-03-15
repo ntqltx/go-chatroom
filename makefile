@@ -24,8 +24,12 @@ kill:
 	if [ -z "$$pid" ]; then \
 		echo "Nothing running on port $$port"; \
 	else \
-		kill -15 $$pid && echo "Server on port $$port stopped" \
-		|| echo "Failed to stop server"; \
+		cmd=$$(ps -o command= -p $$pid | awk '{print $$1}' | xargs basename 2>/dev/null); \
+		if echo "$$cmd" | grep -qE "^server$$"; then \
+			kill -15 -- $$pid && echo "Server successfully stopped" || echo "Failed to stop server"; \
+		else \
+			echo "Process on port $$port is '$$cmd', not a server"; \
+		fi \
 	fi
 
 clean:

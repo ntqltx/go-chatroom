@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func main() {
@@ -27,6 +29,8 @@ func main() {
 			errorMessage(fmt.Sprintf("Could not connect to %s, try again!", address))
 			continue
 		}
+
+		signal.Ignore(syscall.SIGTERM)
 		break
 	}
 	defer conn.Close()
