@@ -8,7 +8,9 @@ import (
 	"github.com/fatih/color"
 )
 
-const CLEAN_LINE = "\033[A\033[K"
+const CLEAN_LINE string = "\033[A\033[K"
+const MAX_HISTORY int = 30
+
 var errorStyle = color.New(color.FgRed, color.Bold)
 
 // -- slice with all possible username color tags

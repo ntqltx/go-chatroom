@@ -40,6 +40,12 @@ func (s *Server) registerClient(conn net.Conn) (string, string) {
 		s.clients[conn] = username
 		s.mut.Unlock()
 
+		s.mut.RLock()
+		for _, msg := range s.history {
+		    fmt.Fprintln(conn, msg)
+		}
+		s.mut.RUnlock()
+
 		fmt.Fprintf(conn, "Connected as %s\n", colored)
 		fmt.Printf("%s connected\n", username)
 

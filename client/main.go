@@ -63,7 +63,7 @@ func login(conn net.Conn, scanner *bufio.Scanner) (*bufio.Scanner, string, error
 			continue
 		}
 
-		// fmt.Printf("\033[2J\033[H")
+		fmt.Printf("\033[2J\033[H")
 		return serverScanner, response, nil
 	}
 }

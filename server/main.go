@@ -20,6 +20,8 @@ type Message struct {
 type Server struct {
 	clients map[net.Conn]string
 	broadcast chan Message
+	history []string
+
 	mut sync.RWMutex
 	isShutdown bool
 }
@@ -49,6 +51,8 @@ func main() {
 	}
 
 	defer listener.Close()
+
+	fmt.Printf("\033[2J\033[H")
 	fmt.Printf("Server started on localhost:%s\n", port)
 
 	server := &Server {
@@ -87,6 +91,17 @@ func (s *Server) handleConnections(listener net.Listener) {
 
 func (s *Server) handleBroadcast() {
 	for message := range s.broadcast {
+	 	if message.sender != nil {
+            s.mut.Lock()
+            s.history = append(s.history, message.content)
+
+            if len(s.history) > MAX_HISTORY {
+                s.history = s.history[1:]
+            }
+
+            s.mut.Unlock()
+        }
+
 		s.mut.RLock()
 
 		for conn := range s.clients {
