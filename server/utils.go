@@ -45,6 +45,5 @@ func (s *Server) systemBroadcast(content string, target net.Conn) {
 }
 
 func errorMessage(content string) {
-	fmt.Print(CLEAN_LINE)
-	fmt.Println(errorStyle.Sprint("[Error] ") + content)
+	fmt.Println(errorStyle.Sprint("\n[Error] ") + content)
 }

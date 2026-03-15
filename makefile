@@ -2,32 +2,31 @@ BINARY_DIR = bin
 SERVER_BIN = $(BINARY_DIR)/server
 CLIENT_BIN = $(BINARY_DIR)/client
 
-.PHONY: all build server client clean
+.PHONY: all build kill clean
 
-build: $(SERVER_BIN) $(CLIENT_BIN)
-	@echo "Binaries built successfully"
+build: clean $(SERVER_BIN) $(CLIENT_BIN)
 
 $(SERVER_BIN):
 	@mkdir -p $(BINARY_DIR)
 	@go build -o $@ ./server
+	@chmod +x $(SERVER_BIN)
 
 $(CLIENT_BIN):
 	@mkdir -p $(BINARY_DIR)
 	@go build -o $@ ./client
+	@chmod +x $(CLIENT_BIN)
 
-server:
-	@if echo "$(ARGS)" | grep -qE "\-\-verbose|\-\-log"; then \
-		stty -echoctl; \
-		go run ./server $(ARGS); \
-		stty echoctl; \
+kill:
+	@echo ""; \
+	read -p "Port (default 8080): " port; \
+	port=$${port:-8080}; \
+	pid=$$(lsof -t -i :$$port); \
+	if [ -z "$$pid" ]; then \
+		echo "Nothing running on port $$port"; \
 	else \
-		go run ./server $(ARGS) & \
-		sleep 0.3; \
-	fi; exit 0
-
-client:
-	@-go run ./client; exit 0
+		kill -15 $$pid && echo "Server on port $$port stopped" \
+		|| echo "Failed to stop server"; \
+	fi
 
 clean:
 	@rm -rf $(BINARY_DIR)
-	@echo "Cleaned binaries"

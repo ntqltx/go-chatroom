@@ -59,6 +59,8 @@ func (s *Server) unregisterClient(conn net.Conn, username, colorUsername string)
 	delete(s.clients, conn)
 	s.mut.Unlock()
 
-	s.systemBroadcast(fmt.Sprintf("%s left!", colorUsername), conn)
+	if !s.isShutdown {
+		s.systemBroadcast(fmt.Sprintf("%s left!", colorUsername), conn)
+	}
 	log.Printf("%s disconnected", username)
 }

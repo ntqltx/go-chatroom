@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -30,7 +31,6 @@ type Server struct {
 
 func main() {
 	f := parseFlags()
-	setupLogging(f)
 
 	listener, err := net.Listen("tcp", ":" + f.port)
 	if err != nil {
@@ -38,7 +38,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	if (!f.verbose || f.logPath != "") && os.Getenv("SERVER_CHILD") != "1" {
+		fmt.Printf("\nServer started on localhost:%s\n–> run `make kill` to stop it\n", f.port)
+
+	    cmd := exec.Command(os.Args[0], os.Args[1:]...)
+	    cmd.Env = append(os.Environ(), "SERVER_CHILD=1")
+
+	    cmd.Stdout = nil
+	    cmd.Stderr = nil
+	    cmd.Stdin = nil
+
+	    if err := cmd.Start(); err != nil {
+			errorMessage(fmt.Sprintf("Unable to start server: %s", err))
+	        os.Exit(1)
+	    }
+	    os.Exit(0)
+	}
+
+	setupLogging(f)
 	defer listener.Close()
+
+	fmt.Println()
 	log.Printf("Server started on localhost:%s", f.port)
 
 	server := &Server {

@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -45,16 +48,21 @@ func startUI(conn net.Conn, serverScanner *bufio.Scanner, message string) {
 	})
 
 	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<- quit
+
+		stop(app, messages)
+	}()
+
+	go func() {
 		update(app, messages, message)
 
 		for serverScanner.Scan() {
 			message := serverScanner.Text()
 
 			if message == "SERVER_DISCONNECT" {
-				update(app, messages, "[red::b]Server disconnected![-:-:-]")
-				time.Sleep(time.Millisecond*1000)
-
-				app.Stop()
+				// stop(app, messages)
 				return
 			}
 
@@ -74,4 +82,10 @@ func update(app *tview.Application, messages *tview.TextView, message string) {
 		fmt.Fprintf(messages, "%s\n", message)
 		messages.ScrollToEnd()
 	})
+}
+
+func stop(app *tview.Application, messages *tview.TextView) {
+	update(app, messages, "[red::b]Server disconnected![-:-:-]")
+	time.Sleep(time.Millisecond*1000)
+	app.Stop()
 }
