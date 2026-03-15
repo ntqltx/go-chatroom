@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	fmt.Println()
 	scanner := bufio.NewScanner(os.Stdin)
 	var conn net.Conn
 

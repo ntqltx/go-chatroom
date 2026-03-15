@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hash/fnv"
 	"net"
 	"time"
 
@@ -15,20 +16,24 @@ var errorStyle = color.New(color.FgRed, color.Bold)
 
 // -- slice with all possible username color tags
 var colorList = []string{
-	"[red]",
+	"[maroon]",
 	"[green]",
+	"[olive]",
+	"[navy]",
+	"[purple]",
+	"[teal]",
+	"[red]",
+	"[lime]",
 	"[yellow]",
 	"[blue]",
-	"[purple]",
-	"[cyan]",
+	"[fuchsia]",
+	"[aqua]",
 }
 
 func getUserColor(username string) string {
-	total := 0
-	for _, c := range username {
-		total += int(c)
-	}
-	return colorList[total % len(colorList)]
+	hash := fnv.New32a()
+	hash.Write([]byte(username))
+	return colorList[hash.Sum32() % uint32(len(colorList))]
 }
 
 func colorUsername(username string) string {
